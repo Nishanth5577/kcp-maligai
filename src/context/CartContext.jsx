@@ -1,0 +1,80 @@
+import { createContext, useContext, useReducer, useEffect } from 'react';
+
+const CartContext = createContext();
+
+const cartReducer = (state, action) => {
+  switch (action.type) {
+    case 'ADD_TO_CART': {
+      const existingIndex = state.items.findIndex(item => item.id === action.payload.id);
+      if (existingIndex >= 0) {
+        const newItems = [...state.items];
+        newItems[existingIndex] = {
+          ...newItems[existingIndex],
+          quantity: newItems[existingIndex].quantity + 1
+        };
+        return { ...state, items: newItems };
+      }
+      return { ...state, items: [...state.items, { ...action.payload, quantity: 1 }] };
+    }
+    case 'REMOVE_FROM_CART':
+      return { ...state, items: state.items.filter(item => item.id !== action.payload) };
+    case 'UPDATE_QUANTITY': {
+      const newItems = state.items.map(item =>
+        item.id === action.payload.id
+          ? { ...item, quantity: Math.max(1, action.payload.quantity) }
+          : item
+      );
+      return { ...state, items: newItems };
+    }
+    case 'CLEAR_CART':
+      return { ...state, items: [] };
+    default:
+      return state;
+  }
+};
+
+const getInitialState = () => {
+  try {
+    const saved = localStorage.getItem('kcp-cart');
+    const items = saved ? JSON.parse(saved) : [];
+    return { items };
+  } catch {
+    return { items: [] };
+  }
+};
+
+export function CartProvider({ children }) {
+  const [state, dispatch] = useReducer(cartReducer, null, getInitialState);
+
+  useEffect(() => {
+    localStorage.setItem('kcp-cart', JSON.stringify(state.items));
+  }, [state.items]);
+
+  const addToCart = (product) => dispatch({ type: 'ADD_TO_CART', payload: product });
+  const removeFromCart = (id) => dispatch({ type: 'REMOVE_FROM_CART', payload: id });
+  const updateQuantity = (id, quantity) => dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
+  const clearCart = () => dispatch({ type: 'CLEAR_CART' });
+
+  const cartCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  return (
+    <CartContext.Provider value={{
+      items: state.items,
+      cartCount,
+      subtotal,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+    }}>
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) throw new Error('useCart must be used within CartProvider');
+  return context;
+};
