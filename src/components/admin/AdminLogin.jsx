@@ -24,11 +24,13 @@ export default function AdminLogin({ onLogin }) {
 
   const { t } = useLanguage();
 
+  const defaultPin = import.meta.env.VITE_ADMIN_PIN || '1234';
+
   const getCorrectPin = () => {
     try {
-      return localStorage.getItem('kcp-admin-pin') || '1234';
+      return localStorage.getItem('kcp-admin-pin') || defaultPin;
     } catch {
-      return '1234';
+      return defaultPin;
     }
   };
 
@@ -185,7 +187,7 @@ export default function AdminLogin({ onLogin }) {
                     <Key className="w-3.5 h-3.5" />
                     {t('changePin')}
                   </button>
-                  <p className="text-[10px] text-surface-500 text-center">{t('defaultPinHint')}</p>
+                  <p className="text-[10px] text-surface-500 text-center">{t('defaultPinHint').replace('1234', defaultPin)}</p>
                 </div>
               </motion.div>
             ) : (
